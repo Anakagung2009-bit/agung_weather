@@ -1,0 +1,155 @@
+{
+  "project_info": {
+    "project_number": "324982137742",
+    "firebase_url": "https://agung-dev-project-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "agung-dev-project",
+    "storage_bucket": "agung-dev-project.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:324982137742:android:41df33e9379d666a1ffadf",
+        "android_client_info": {
+          "package_name": "com.agungdev.apass"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "324982137742-o4e3vvlfd68r7aog69kkib48nla0ol8b.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAd9Cng0eir-2SOa9WPgYvRa4bEhZAv96g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "324982137742-o4e3vvlfd68r7aog69kkib48nla0ol8b.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "324982137742-evkm42eqf6ujfk391salv4lpl1cmlhk0.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.calendarApp"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:324982137742:android:ecff840d126d19a31ffadf",
+        "android_client_info": {
+          "package_name": "com.agungdev.authenticator"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "324982137742-o4e3vvlfd68r7aog69kkib48nla0ol8b.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAd9Cng0eir-2SOa9WPgYvRa4bEhZAv96g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "324982137742-o4e3vvlfd68r7aog69kkib48nla0ol8b.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "324982137742-evkm42eqf6ujfk391salv4lpl1cmlhk0.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.calendarApp"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:324982137742:android:df692e9e9cd608ec1ffadf",
+        "android_client_info": {
+          "package_name": "com.agungdev.notes"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "324982137742-o4e3vvlfd68r7aog69kkib48nla0ol8b.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAd9Cng0eir-2SOa9WPgYvRa4bEhZAv96g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "324982137742-o4e3vvlfd68r7aog69kkib48nla0ol8b.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "324982137742-evkm42eqf6ujfk391salv4lpl1cmlhk0.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.calendarApp"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:324982137742:android:316cc8b8e2dba9991ffadf",
+        "android_client_info": {
+          "package_name": "com.agungdev.weather"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "324982137742-o4e3vvlfd68r7aog69kkib48nla0ol8b.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAd9Cng0eir-2SOa9WPgYvRa4bEhZAv96g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "324982137742-o4e3vvlfd68r7aog69kkib48nla0ol8b.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "324982137742-evkm42eqf6ujfk391salv4lpl1cmlhk0.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.calendarApp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

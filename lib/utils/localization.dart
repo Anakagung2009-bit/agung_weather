@@ -162,6 +162,9 @@ class Localization {
       "date": "Date",
       "coordinates": "Coordinates",
 
+      "login_with_google": "Login with Google",
+      "or": "or",
+
     },
 
 
@@ -314,6 +317,9 @@ class Localization {
       "location": "Lokasi",
       "date": "Tanggal",
       "coordinates": "Koordinat",
+
+      "login_with_google": "Masuk dengan Google",
+      "or": "atau",
 
     }
   };

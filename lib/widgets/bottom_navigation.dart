@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../utils/localization.dart'; // Tambahkan import localization
+import '../utils/localization.dart';
 
 class CustomBottomNavigationBar extends StatelessWidget {
   final int currentIndex;
@@ -18,7 +18,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: colorScheme.surface,
+        color: colorScheme.surface, // Menggunakan warna surface dari color scheme
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
@@ -46,6 +46,13 @@ class CustomBottomNavigationBar extends StatelessWidget {
                 icon: Icons.location_on_rounded,
                 label: context.translate('locations'),
                 isSelected: currentIndex == 1,
+              ),
+              _buildNavItem(
+                context,
+                index: 3, // Sesuaikan index
+                icon: Icons.warning_rounded,
+                label: context.translate('disaster_alerts'), // Tambahkan translasi
+                isSelected: currentIndex == 3,
               ),
               _buildNavItem(
                 context,
@@ -85,6 +92,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
               curve: Curves.easeInOutCubic,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
+                // Gunakan primaryContainer dengan opacity untuk efek Material You
                 color: isSelected
                     ? colorScheme.primaryContainer.withOpacity(0.2)
                     : Colors.transparent,
@@ -113,6 +121,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
                     child: Icon(
                       icon,
                       key: ValueKey(isSelected),
+                      // Gunakan warna dari color scheme untuk efek Material You
                       color: isSelected
                           ? colorScheme.primary
                           : colorScheme.onSurface.withOpacity(0.7),
@@ -138,6 +147,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
                         label,
                         key: ValueKey(label),
                         style: textTheme.bodyMedium?.copyWith(
+                          // Gunakan warna primary dari color scheme
                           color: colorScheme.primary,
                           fontWeight: FontWeight.bold,
                         ),

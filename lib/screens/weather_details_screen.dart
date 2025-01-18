@@ -140,8 +140,13 @@ class _WeatherDetailsScreenState extends State<WeatherDetailsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.weather.cityName),
-        centerTitle: true,
+        automaticallyImplyLeading: true, // Ini akan menampilkan tombol kembali secara otomatis
+        title: Text(
+          widget.weather.cityName,
+          style: Theme.of(context).textTheme.headlineMedium, // Sesuaikan ukuran judul
+        ),
+        centerTitle: false,
+        toolbarHeight: 64,
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
@@ -307,6 +312,133 @@ class _WeatherDetailsScreenState extends State<WeatherDetailsScreen> {
     );
   }
 
+  // Layout kondisi cuaca
+  String _determineWeatherCondition() {
+    // Logika untuk menentukan kondisi cuaca
+    double temperature = widget.weather.temperature;
+    dynamic windSpeed = widget.weather.windSpeed; // Gunakan dynamic
+    dynamic humidity = widget.weather.humidity; // Gunakan dynamic
+
+    // Konversi windSpeed ke double jika perlu
+    double windSpeedDouble = windSpeed is int
+        ? windSpeed.toDouble()
+        : windSpeed is double
+        ? windSpeed
+        : 0.0;
+
+    // Konversi humidity ke int jika perlu
+    int humidityInt = humidity is double
+        ? humidity.toInt()
+        : humidity is int
+        ? humidity
+        : 0;
+
+    String description = widget.weather.description.toLowerCase();
+
+    // Kriteria untuk kondisi cuaca
+    if (temperature > 40 || temperature < -10 ||
+        windSpeedDouble > 25 ||
+        humidityInt > 95 ||
+        description.contains('storm') ||
+        description.contains('hurricane') ||
+        description.contains('tornado') ||
+        description.contains('extreme')) {
+      return 'Extreme';
+    } else if ((temperature > 35 || temperature < 0) ||
+        (windSpeedDouble > 15) ||
+        (humidityInt > 85) ||
+        description.contains('rain') ||
+        description.contains('snow') ||
+        description.contains('heavy')) {
+      return 'Medium';
+    } else {
+      return 'Normal';
+    }
+  }
+
+// Method untuk mendapatkan deskripsi kondisi cuaca
+  String _getWeatherConditionDescription(String category) {
+    switch (category) {
+      case 'Extreme':
+        return 'Current weather conditions are severe and potentially dangerous. Take necessary precautions and stay informed about local weather alerts.';
+      case 'Medium':
+        return 'Weather conditions are challenging and require careful attention. Be prepared for potential weather changes and take appropriate measures.';
+      default:
+        return 'Weather conditions are stable and comfortable. Enjoy your day with minimal weather-related concerns.';
+    }
+  }
+
+// Method untuk membangun card kondisi cuaca
+  Widget _buildWeatherConditionCard(BuildContext context) {
+    // Tentukan kondisi cuaca berdasarkan parameter
+    String conditionCategory = _determineWeatherCondition();
+    IconData conditionIcon;
+    Color conditionColor;
+    Color textColor;
+
+    switch (conditionCategory) {
+      case 'Extreme':
+        conditionIcon = Icons.dangerous_rounded;
+        conditionColor = Colors.red;
+        textColor = Colors.white;
+        break;
+      case 'Medium':
+        conditionIcon = Icons.warning_amber_rounded;
+        conditionColor = Colors.orange;
+        textColor = Colors.black;
+        break;
+      default:
+        conditionIcon = Icons.check_circle_outline;
+        conditionColor = Colors.green;
+        textColor = Colors.black;
+    }
+
+    return Card(
+      margin: EdgeInsets.all(16),
+      color: conditionColor,
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(conditionIcon, color: textColor),
+                SizedBox(width: 8),
+                Text(
+                  'Weather Condition',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: textColor,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 12),
+            Row(
+              children: [
+                Text(
+                  'Category: $conditionCategory',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: textColor,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 8),
+            Text(
+              _getWeatherConditionDescription(conditionCategory),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: textColor,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // Layout methods (Wide Desktop, Medium Desktop, Mobile)
   Widget _buildWideDesktopLayout(BuildContext context) {
     return SingleChildScrollView(
@@ -322,6 +454,7 @@ class _WeatherDetailsScreenState extends State<WeatherDetailsScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     _buildWeatherSummary(context),
+                    _buildWeatherConditionCard(context), // Tambahkan ini
                     _buildAISummaryCard(context),
                     _buildChanceOfRainCard(context),
                   ],
@@ -329,8 +462,7 @@ class _WeatherDetailsScreenState extends State<WeatherDetailsScreen> {
               ),
               Expanded(
                 flex: 3,
-                child:
-                    _buildWeatherDetailsGrid(context), // Hapus crossAxisCount
+                child: _buildWeatherDetailsGrid(context),
               ),
             ],
           ),
@@ -347,6 +479,7 @@ class _WeatherDetailsScreenState extends State<WeatherDetailsScreen> {
           _buildWeatherSummary(context),
           _buildAISummaryCard(context),
           _buildChanceOfRainCard(context),
+          _buildWeatherConditionCard(context), // Tambahkan ini
           _buildWeatherDetailsGrid(context), // Hapus crossAxisCount
         ],
       ),
@@ -360,6 +493,7 @@ class _WeatherDetailsScreenState extends State<WeatherDetailsScreen> {
           _buildWeatherSummary(context),
           _buildAISummaryCard(context),
           _buildChanceOfRainCard(context),
+          _buildWeatherConditionCard(context), // Tambahkan ini
           _buildWeatherDetailsGrid(context),
         ],
       ),

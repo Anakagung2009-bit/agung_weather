@@ -113,6 +113,12 @@ class _CustomNavigationDrawerState extends State<CustomNavigationDrawer> {
                     ),
                     _buildNavigationItem(
                       context,
+                      index: 3, // Sesuaikan index
+                      icon: Icons.warning_rounded,
+                      label: context.translate('disaster_alerts'), // Tambahkan translasi
+                    ),
+                    _buildNavigationItem(
+                      context,
                       index: 2,
                       icon: Icons.settings_rounded,
                       label: context.translate('settings'),

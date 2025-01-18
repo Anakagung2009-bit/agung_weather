@@ -55,6 +55,7 @@ class Localization {
       'start_searching': 'Start searching for a city',
       'unable_to_find_weather': 'Unable to find weather for {city}',
       'added_to_saved_locations': 'Added {city} to saved locations',
+      'start_typing_to_search': 'Start Typing to Search',
 
     //   Details Weather
       'ai_weather_insights': 'AI Weather Insights',
@@ -137,6 +138,29 @@ class Localization {
       'dashboard': 'Dashboard',
       'locations': 'Locations',
       'settings': 'Settings',
+
+      'select_temperature_unity': 'Select Temperature Unit',
+
+      'global_disaster_alert': 'Global Disaster Alert',
+      "potential_disaster_detected": "Potential Disaster Detected in Your Area",
+      "no_immediate_disaster_threat": "No Immediate Disaster Threat",
+      "failed_fetch_disaster_data": "Failed to fetch disaster data",
+      "error_fetching_disaster_data": "Error fetching disaster data",
+      "nearby_disasters": "Nearby Disasters:",
+      'local_disaster_status': 'Local Disaster Status',
+      "search_disasters_hint": "Search disasters by location or type",
+      "disaster_alerts": "Disaster Alerts",
+
+      "emergency_resources": "Emergency Resources",
+      "emergency_services": "Emergency Services",
+      "local_disaster_management": "Local Disaster Management",
+      "call_emergency": "Call %s (%s)",
+      "contacting_authorities": "Contacting local authorities in %s",
+      "could_not_launch_call": "Could not launch emergency call",
+
+      "location": "Location",
+      "date": "Date",
+      "coordinates": "Coordinates",
 
     },
 
@@ -266,6 +290,31 @@ class Localization {
       'dashboard': 'Dasbor',
       'locations': 'Lokasi',
       'settings': 'Pengaturan',
+
+      'start_typing_to_search': 'Mulai mengetik untuk mencari',
+
+      'select_temperature_unity': 'Pilih Unit Temperatur',
+
+      'global_disaster_alert': 'Peringatan Bencana Global',
+      "potential_disaster_detected": "Bencana Potensial Terdeteksi di Daerah Anda",
+      "no_immediate_disaster_threat": "Tidak Ada Ancaman Bencana Langsung",
+      "failed_fetch_disaster_data": "Gagal mengambil data bencana",
+      "error_fetching_disaster_data": "Kesalahan saat mengambil data bencana",
+      "nearby_disasters": "Bencana Terdekat:",
+      'local_disaster_status': 'Status Bencana Lokal',
+      "search_disasters_hint": "Cari bencana berdasarkan lokasi atau tipe",
+      "disaster_alerts": "Peringatan Bencana",
+
+      "emergency_resources": "Sumber Daya Darurat",
+      "emergency_services": "Layanan Darurat",
+      "local_disaster_management": "Manajemen Bencana Lokal",
+      "call_emergency": "Hubungi %s (%s)",
+      "contacting_authorities": "Menghubungi otoritas lokal di %s",
+      "could_not_launch_call": "Tidak dapat membuat panggilan darurat",
+      "location": "Lokasi",
+      "date": "Tanggal",
+      "coordinates": "Koordinat",
+
     }
   };
 

@@ -5,6 +5,8 @@ import '../widgets/bottom_navigation.dart';
 import 'home_content.dart';
 import 'search_screen.dart';
 import 'settings_screen.dart';
+import 'disaster_screen.dart'; // Tambahkan import ini
+
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -18,6 +20,8 @@ class _HomeScreenState extends State<HomeScreen> {
     HomeContent(),
     SearchScreen(),
     SettingsScreen(),
+    DisasterScreen(), // Tambahkan screen baru di sini
+
   ];
 
   void _onItemTapped(int index) {

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
+import 'package:dynamic_color/dynamic_color.dart';
 
 // Import Firebase options
 import 'firebase_options.dart';
@@ -20,8 +22,9 @@ import 'screens/login_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/search_screen.dart';
 import 'screens/weather_details_screen.dart';
-import 'screens/loading_screen.dart'; // Tambahkan import loading screen
+import 'screens/loading_screen.dart';
 import 'screens/splash_screen.dart';
+import 'screens/disaster_screen.dart'; // Import screen baru
 
 // Import Models
 import 'models/location_weather.dart';
@@ -38,12 +41,32 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
+  // Tambahkan konfigurasi untuk AppWidget
+  const MethodChannel widgetChannel = MethodChannel('com.agungdev.weather/weather_widget');
+
+  // Setup method handler untuk update widget
+  widgetChannel.setMethodCallHandler((MethodCall call) async {
+    switch (call.method) {
+      case 'updateWeatherWidget':
+        final weatherProvider = WeatherProvider();
+        await weatherProvider.refreshCurrentLocation();
+
+        return {
+          'cityName': weatherProvider.currentWeather?.cityName ?? 'Unknown',
+          'temperature': '${weatherProvider.currentWeather?.temperature.toStringAsFixed(1) ?? '-'}°C',
+          'description': weatherProvider.currentWeather?.description ?? 'No data',
+        };
+      default:
+        throw MissingPluginException();
+    }
+  });
+
   // Run the app
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -56,68 +79,109 @@ class MyApp extends StatelessWidget {
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
-          return MaterialApp(
-            title: 'Agung Weather',
-            theme: AppTheme.lightTheme,
-            darkTheme: AppTheme.darkTheme,
-            themeMode: themeProvider.themeMode,
+          return DynamicColorBuilder(
+            builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
+              // Prioritaskan warna dinamis dari wallpaper
+              ColorScheme lightColorScheme = lightDynamic ?? ColorScheme.fromSeed(
+                seedColor: Colors.blue,
+                brightness: Brightness.light,
+              );
 
-            // Use AuthWrapper as the initial route
-            home: SplashScreen(),
+              ColorScheme darkColorScheme = darkDynamic ?? ColorScheme.fromSeed(
+                seedColor: Colors.blue,
+                brightness: Brightness.dark,
+              );
 
-            // Define named routes
-            routes: {
-              '/home': (context) => HomeScreen(),
-              '/login': (context) => LoginScreen(),
-              '/settings': (context) => SettingsScreen(),
-            },
+              // Jika Material You dinonaktifkan, gunakan warna default
+              if (!themeProvider.isMaterialYouEnabled) {
+                lightColorScheme = ColorScheme.fromSeed(
+                  seedColor: Colors.blue,
+                  brightness: Brightness.light,
+                );
 
-            // Add onGenerateRoute for dynamic routing
-            onGenerateRoute: (settings) {
-              // Handle search route with query parameter
-              if (settings.name == '/search') {
-                final uri = Uri.parse(settings.name!);
-                final cityName = uri.queryParameters['q'];
-
-                return MaterialPageRoute(
-                  builder: (context) => SearchScreen(initialQuery: cityName),
+                darkColorScheme = ColorScheme.fromSeed(
+                  seedColor: Colors.blue,
+                  brightness: Brightness.dark,
                 );
               }
 
-              // Handle details route with latitude and longitude
-              if (settings.name == '/details') {
-                final uri = Uri.parse(settings.name!);
-                final lat = double.tryParse(uri.queryParameters['lat'] ?? '');
-                final lon = double.tryParse(uri.queryParameters['lon'] ?? '');
+              return MaterialApp(
+                title: 'Weather App',
+                theme: ThemeData(
+                  colorScheme: lightColorScheme,
+                  useMaterial3: true,
+                  textTheme: AppTheme.productSansTextTheme,
+                  fontFamily: 'ProductSans',
+                  appBarTheme: AppBarTheme(
+                    backgroundColor: lightColorScheme.surface,
+                    foregroundColor: lightColorScheme.onSurface,
+                  ),
+                  scaffoldBackgroundColor: lightColorScheme.background,
+                ),
+                darkTheme: ThemeData(
+                  colorScheme: darkColorScheme,
+                  useMaterial3: true,
+                  textTheme: AppTheme.productSansTextTheme,
+                  fontFamily: 'ProductSans',
+                  appBarTheme: AppBarTheme(
+                    backgroundColor: darkColorScheme.surface,
+                    foregroundColor: darkColorScheme.onSurface,
+                  ),
+                  scaffoldBackgroundColor: darkColorScheme.background,
+                ),
+                themeMode: themeProvider.themeMode,
+                locale: themeProvider.locale,
+                home: SplashScreen(),
+                routes: {
+                  '/home': (context) => HomeScreen(),
+                  '/login': (context) => LoginScreen(),
+                  '/settings': (context) => SettingsScreen(),
+                  '/disaster': (context) => DisasterScreen(), // Tambahkan route untuk Disaster Screen
+                },
+                onGenerateRoute: (settings) {
+                  // Routing logic tetap sama seperti sebelumnya
+                  if (settings.name == '/search') {
+                    final uri = Uri.parse(settings.name!);
+                    final cityName = uri.queryParameters['q'];
 
-                if (lat != null && lon != null) {
-                  return MaterialPageRoute(
-                    builder: (context) => FutureBuilder<LocationWeather?>(
-                      future: _fetchWeatherByCoordinates(context, lat, lon),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return LoadingScreen(); // Gunakan LoadingScreen
-                        }
+                    return MaterialPageRoute(
+                      builder: (context) => SearchScreen(initialQuery: cityName),
+                    );
+                  }
 
-                        if (snapshot.hasError || !snapshot.hasData) {
-                          return Scaffold(
-                            body: Center(
-                              child: Text('Unable to fetch weather details'),
-                            ),
-                          );
-                        }
+                  if (settings.name == '/details') {
+                    final uri = Uri.parse(settings.name!);
+                    final lat = double.tryParse(uri.queryParameters['lat'] ?? '');
+                    final lon = double.tryParse(uri.queryParameters['lon'] ?? '');
 
-                        return WeatherDetailsScreen(weather: snapshot.data!);
-                      },
-                    ),
-                  );
-                }
-              }
-              return null;
+                    if (lat != null && lon != null) {
+                      return MaterialPageRoute(
+                        builder: (context) => FutureBuilder<LocationWeather?>(
+                          future: _fetchWeatherByCoordinates(context, lat, lon),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState == ConnectionState.waiting) {
+                              return LoadingScreen();
+                            }
+
+                            if (snapshot.hasError || !snapshot.hasData) {
+                              return Scaffold(
+                                body: Center(
+                                  child: Text('Unable to fetch weather details'),
+                                ),
+                              );
+                            }
+
+                            return WeatherDetailsScreen(weather: snapshot.data!);
+                          },
+                        ),
+                      );
+                    }
+                  }
+                  return null;
+                },
+                debugShowCheckedModeBanner: false,
+              );
             },
-
-            // Debug configuration
-            debugShowCheckedModeBanner: false,
           );
         },
       ),
@@ -126,14 +190,17 @@ class MyApp extends StatelessWidget {
 
   // Metode untuk mengambil data cuaca berdasarkan koordinat
   Future<LocationWeather?> _fetchWeatherByCoordinates(
-      BuildContext context, double lat, double lon) async {
-    final weatherApiService =
-    Provider.of<WeatherApiService>(context, listen: false);
+      BuildContext context,
+      double lat,
+      double lon
+      ) async {
+    final weatherApiService = Provider.of<WeatherApiService>(
+        context,
+        listen: false
+    );
 
     try {
-      // Gunakan metode getLocationWeatherByCoordinates yang sudah ada di WeatherApiService
-      final weatherData =
-      await weatherApiService.getLocationWeatherByCoordinates(lat, lon);
+      final weatherData = await weatherApiService.getLocationWeatherByCoordinates(lat, lon);
       return weatherData;
     } catch (e) {
       print('Error fetching weather by coordinates: $e');
@@ -150,17 +217,22 @@ extension NavigatorExtension on BuildContext {
 
   void navigateToDetails(double lat, double lon) {
     Navigator.pushNamed(
-        this, '/details?lat=${lat.toString()}&lon=${lon.toString()}');
+        this,
+        '/details?lat=${lat.toString()}&lon=${lon.toString()}'
+    );
   }
+
 }
 
+// AuthWrapper untuk mengelola otentikasi
 class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        // Tambahkan kondisi waiting dan gunakan LoadingScreen
         if (snapshot.connectionState == ConnectionState.waiting) {
           return LoadingScreen();
         }
@@ -169,15 +241,12 @@ class AuthWrapper extends StatelessWidget {
           User? user = snapshot.data;
 
           if (user == null) {
-            // No user is signed in, redirect to login
             return LoginScreen();
           } else {
-            // User is signed in, redirect to home
             return HomeScreen();
           }
         }
 
-        // Fallback loading screen
         return LoadingScreen();
       },
     );

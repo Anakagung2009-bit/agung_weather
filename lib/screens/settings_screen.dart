@@ -1,58 +1,212 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:io';
+
 import '../services/auth_service.dart';
 import '../providers/weather_provider.dart';
 import '../providers/theme_provider.dart';
 import '../constants/app_constants.dart';
-import '../utils/localization.dart'; // Tambahkan import ini
+import '../utils/localization.dart';
+import '../screens/login_screen.dart'; // Pastikan import login screen
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
+  @override
+  _SettingsScreenState createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
   final AuthService _authService = AuthService();
+
+  // Method untuk mengecek dukungan Material You
+  Future<bool> _isMaterialYouSupported() async {
+    if (Platform.isAndroid) {
+      DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+      AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+
+      // Material You tersedia di Android 12 (API level 31) ke atas
+      return androidInfo.version.sdkInt >= 31;
+    }
+
+    // Untuk platform lain, return false
+    return false;
+  }
+
+  // Method untuk logout
+  void _logout(BuildContext context) async {
+    try {
+      await _authService.signOut();
+      Provider.of<WeatherProvider>(context, listen: false).clearSavedLocations();
+
+      // Navigasi ke login screen dan hapus semua route sebelumnya
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => LoginScreen()),
+            (Route<dynamic> route) => false,
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.translate('logout_success')),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.translate('logout_failed')),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // Method untuk menampilkan dialog bahasa
+  void _showLanguageDialog(BuildContext context, ThemeProvider themeProvider) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(context.translate('select_language')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildLanguageOption(context, themeProvider, 'English', Locale('en')),
+            _buildLanguageOption(context, themeProvider, 'Indonesia', Locale('id')),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Widget untuk opsi bahasa
+  Widget _buildLanguageOption(
+      BuildContext context,
+      ThemeProvider themeProvider,
+      String languageName,
+      Locale locale
+      ) {
+    return ListTile(
+      title: Text(languageName),
+      trailing: Radio<Locale>(
+        value: locale,
+        groupValue: themeProvider.locale,
+        onChanged: (selectedLocale) {
+          if (selectedLocale != null) {
+            themeProvider.setLanguage(selectedLocale);
+            Navigator.of(context).pop();
+          }
+        },
+      ),
+      onTap: () {
+        themeProvider.setLanguage(locale);
+        Navigator.of(context).pop();
+      },
+    );
+  }
+
+  // Method untuk menampilkan dialog unit suhu
+  void _showTemperatureUnitDialog(
+      BuildContext context,
+      ThemeProvider themeProvider
+      ) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(context.translate('select_temperature_unit')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildTemperatureUnitOption(context, themeProvider, 'Celsius', 'Celsius'),
+            _buildTemperatureUnitOption(context, themeProvider, 'Fahrenheit', 'Fahrenheit'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Widget untuk opsi unit suhu
+  Widget _buildTemperatureUnitOption(
+      BuildContext context,
+      ThemeProvider themeProvider,
+      String unitName,
+      String unitValue
+      ) {
+    return ListTile(
+      title: Text(unitName),
+      trailing: Radio<String>(
+        value: unitValue,
+        groupValue: themeProvider.temperatureUnit,
+        onChanged: (selectedUnit) {
+          if (selectedUnit != null) {
+            themeProvider.setTemperatureUnit(selectedUnit);
+            Navigator.of(context).pop();
+          }
+        },
+      ),
+      onTap: () {
+        themeProvider.setTemperatureUnit(unitValue);
+        Navigator.of(context).pop();
+      },
+    );
+  }
+
+  // Method untuk menampilkan dialog tentang aplikasi
+  void _showAboutAppDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AboutDialog(
+        applicationName: AppConstants.appName,
+        applicationVersion: AppConstants.appVersion,
+        applicationIcon: FlutterLogo(size: 50),
+        children: [
+          Text(context.translate('weather_app_info')),
+          SizedBox(height: 16),
+          Text(context.translate('developed_by')),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          context.translate('settings'), // Gunakan translate
+          context.translate('settings'),
           style: TextStyle(
             fontWeight: FontWeight.bold,
             color: colorScheme.onSurface,
           ),
         ),
         centerTitle: true,
-        elevation: 0,
-        backgroundColor: Colors.transparent,
       ),
-      body: Consumer<WeatherProvider>(
-        builder: (context, weatherProvider, child) {
-          return ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            children: [
-              // User Profile Section
-              _buildProfileSection(context, themeProvider),
+      body: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        children: [
+          // Bagian Profil Pengguna
+          _buildUserProfileSection(context, themeProvider),
 
-              const SizedBox(height: 16),
+          SizedBox(height: 16),
 
-              // Settings Sections
-              _buildSettingsSection(context, themeProvider),
+          // Bagian Pengaturan Aplikasi
+          _buildAppSettingsSection(context, themeProvider),
 
-              const SizedBox(height: 16),
+          SizedBox(height: 16),
 
-              // About and Support
-              _buildAboutSection(context),
-            ],
-          );
-        },
+          // Bagian Tentang Aplikasi
+          _buildAboutSection(context),
+        ],
       ),
     );
   }
 
-  Widget _buildProfileSection(BuildContext context, ThemeProvider themeProvider) {
+  // Widget bagian profil pengguna
+  Widget _buildUserProfileSection(BuildContext context, ThemeProvider themeProvider) {
     return StreamBuilder<User?>(
       stream: _authService.user,
       builder: (context, snapshot) {
@@ -62,126 +216,168 @@ class SettingsScreen extends StatelessWidget {
 
         if (snapshot.connectionState == ConnectionState.active) {
           return user != null
-              ? FilledCard(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 40,
-                    backgroundImage: user.photoURL != null
-                        ? NetworkImage(user.photoURL!)
-                        : null,
-                    child: user.photoURL == null
-                        ? Icon(
-                      Icons.person,
-                      size: 40,
-                      color: colorScheme.primary,
-                    )
-                        : null,
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          user.displayName ?? 'User',
-                          style: textTheme.titleMedium,
-                        ),
-                        Text(
-                          user.email ?? '',
-                          style: textTheme.bodyMedium,
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.logout, color: colorScheme.error),
-                    onPressed: () => _logout(context),
-                  ),
-                ],
-              ),
-            ),
-          )
-              : ElevatedButton.icon(
-            onPressed: () => Navigator.of(context).pushNamed('/login'),
-            icon: Icon(Icons.login, color: colorScheme.onPrimary),
-            label: Text(
-              context.translate('login'), // Gunakan translate
-              style: TextStyle(color: colorScheme.onPrimary),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: colorScheme.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          );
+              ? _buildLoggedInUserCard(user, colorScheme, textTheme)
+              : _buildLoginButton(colorScheme, textTheme);
         }
         return Center(child: CircularProgressIndicator());
       },
     );
   }
 
-  Widget _buildSettingsSection(BuildContext context, ThemeProvider themeProvider) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return FilledCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              context.translate('app_settings'), // Gunakan translate
-              style: textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
+  // Card untuk pengguna yang sudah login
+  Widget _buildLoggedInUserCard(
+      User user,
+      ColorScheme colorScheme,
+      TextTheme textTheme
+      ) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          children: [
+            CircleAvatar(
+              backgroundImage: CachedNetworkImageProvider(user.photoURL ?? ''),
+              radius: 30,
+            ),
+            SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    user.displayName ?? '',
+                    style: textTheme.titleLarge,
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    user.email ?? '',
+                    style: textTheme.bodySmall,
+                  ),
+                ],
               ),
             ),
-          ),
-          _buildSettingItem(
-            context,
-            icon: Icons.dark_mode_rounded,
-            title: context.translate('dark_mode'), // Gunakan translate
-            trailing: Switch(
-              value: themeProvider.themeMode == ThemeMode.dark,
-              onChanged: (bool value) {
-                themeProvider.setThemeMode(value ? ThemeMode.dark : ThemeMode.light);
-              },
+            IconButton(
+              icon: Icon(Icons.logout),
+              onPressed: () => _logout(context),
             ),
-          ),
-          _buildSettingItem(
-            context,
-            icon: Icons.language,
-            title: context.translate('language'), // Gunakan translate
-            subtitle: themeProvider.locale.languageCode == 'en' ? 'English' : 'Indonesia',
-            onTap: () => _showLanguageDialog(context, themeProvider),
-          ),
-          _buildSettingItem(
-            context,
-            icon: Icons.thermostat_rounded,
-            title: context.translate('temperature_unit'), // Gunakan translate
-            subtitle: themeProvider.temperatureUnit,
-            onTap: () => _showTemperatureUnitDialog(context, themeProvider),
-          ),
-          _buildSettingItem(
-            context,
-            icon: Icons.notifications_rounded,
-            title: context.translate('weather_notifications'), // Gunakan translate
-            trailing: Switch(
-              value: themeProvider.notificationsEnabled,
-              onChanged: (bool value) {
-                themeProvider.setNotificationsEnabled(value);
-              },
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
+  // Tombol untuk login jika pengguna belum login
+  Widget _buildLoginButton(ColorScheme colorScheme, TextTheme textTheme) {
+    return ElevatedButton(
+      onPressed: () {
+        Navigator.of(context).push(MaterialPageRoute(builder: (context) => LoginScreen()));
+      },
+      child: Text(context.translate('login')),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: colorScheme.primary,
+        padding: EdgeInsets.symmetric(vertical: 16),
+        textStyle: textTheme.labelLarge,
+      ),
+    );
+  }
+
+  // Widget bagian pengaturan aplikasi
+  Widget _buildAppSettingsSection(BuildContext context, ThemeProvider themeProvider) {
+    return FutureBuilder<bool>(
+      future: _isMaterialYouSupported(),
+      builder: (context, snapshot) {
+        bool isMaterialYouSupported = snapshot.data ?? false;
+
+        return Card(
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.translate('app_settings'),
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                SizedBox(height: 16),
+                _buildSettingItem(
+                  context,
+                  icon: Icons.palette_rounded,
+                  title: 'Material You',
+                  subtitle: 'Dynamic color from wallpaper',
+                  trailing: Switch(
+                    value: themeProvider.isMaterialYouEnabled,
+                    onChanged: (bool value) {
+                      themeProvider.setMaterialYouEnabled(value);
+                    },
+                  ),
+                ),
+                _buildSettingItem(
+                  context,
+                  icon: Icons.dark_mode_rounded,
+                  title: context.translate('dark_mode'),
+                  trailing: Switch(
+                    value: themeProvider.themeMode == ThemeMode.dark,
+                    onChanged: (bool value) {
+                      themeProvider.setThemeMode(value ? ThemeMode.dark : ThemeMode.light);
+                    },
+                  ),
+                ),
+                _buildSettingItem(
+                  context,
+                  icon: Icons.language,
+                  title: context.translate('language'),
+                  subtitle: themeProvider.locale.languageCode == 'en' ? 'English' : 'Indonesia',
+                  onTap: () => _showLanguageDialog(context, themeProvider),
+                ),
+                _buildSettingItem(
+                  context,
+                  icon: Icons.thermostat_rounded,
+                  title: context.translate('temperature_unit'),
+                  subtitle: themeProvider.temperatureUnit,
+                  onTap: () => _showTemperatureUnitDialog(context, themeProvider),
+                ),
+                _buildSettingItem(
+                  context,
+                  icon: Icons.notifications_rounded,
+                  title: context.translate('weather_notifications'),
+                  trailing: Switch(
+                    value: themeProvider.notificationsEnabled,
+                    onChanged: (bool value) {
+                      themeProvider.setNotificationsEnabled(value);
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // Widget bagian tentang aplikasi
+  Widget _buildAboutSection(BuildContext context) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: ListTile(
+        title: Text(context.translate('about')),
+        onTap: () => _showAboutAppDialog(context),
+      ),
+    );
+  }
+
+  // Widget untuk item pengaturan
   Widget _buildSettingItem(
       BuildContext context, {
         required IconData icon,
@@ -196,147 +392,6 @@ class SettingsScreen extends StatelessWidget {
       subtitle: subtitle != null ? Text(subtitle) : null,
       trailing: trailing,
       onTap: onTap,
-    );
-  }
-
-  Widget _buildAboutSection(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return FilledCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              'About',
-              style: textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          ListTile(
-            leading: Icon(Icons.info_outline_rounded),
-            title: Text(context.translate('about') + ' ${AppConstants.appName}'),
-            trailing: Icon(Icons.chevron_right),
-            onTap: () => _showAboutDialog(context),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _logout(BuildContext context) async {
-    try {
-      await _authService.signOut();
-      Provider.of<WeatherProvider>(context, listen: false).clearSavedLocations();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.translate('logout_success'))),
-      );
-      Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(context.translate('logout_failed')),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  void _showLanguageDialog(BuildContext context, ThemeProvider themeProvider) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(context.translate('select_language')),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: Text('English'),
-              onTap: () {
-                themeProvider.setLanguage(Locale('en'));
-                Navigator.of(context).pop();
-              },
-            ),
-            ListTile(
-              title: Text('Indonesia'),
-              onTap: () {
-                themeProvider.setLanguage(Locale('id'));
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-
-  void _showTemperatureUnitDialog(
-      BuildContext context, ThemeProvider themeProvider) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Select Temperature Unit'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            RadioListTile(
-              title: Text(' Celsius'),
-              value: 'Celsius',
-              groupValue: themeProvider.temperatureUnit,
-              onChanged: (value) {
-                themeProvider.setTemperatureUnit(value.toString());
-                Navigator.of(context).pop();
-              },
-            ),
-            RadioListTile(
-              title: Text('Fahrenheit'),
-              value: 'Fahrenheit',
-              groupValue: themeProvider.temperatureUnit,
-              onChanged: (value) {
-                themeProvider.setTemperatureUnit(value.toString());
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showAboutDialog(BuildContext context) {
-    showAboutDialog(
-      context: context,
-      applicationName: 'Agung Weather',
-      applicationVersion: '1.0.0',
-      applicationIcon: FlutterLogo(),
-      children: [
-        Text(context.translate('weather_app_info')),
-        Text(context.translate('developed_by')),
-      ],
-    );
-  }
-}
-
-// Tambahkan custom widget untuk FilledCard
-class FilledCard extends StatelessWidget {
-  final Widget child;
-
-  const FilledCard({Key? key, required this.child}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Card(
-      elevation: 0,
-      color: colorScheme.surfaceVariant,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: child,
     );
   }
 }

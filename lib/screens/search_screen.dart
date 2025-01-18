@@ -21,6 +21,7 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
+  final SearchController _searchAnchorController = SearchController();
   final FocusNode _searchFocusNode = FocusNode();
   late AnimationController _animationController;
 
@@ -34,6 +35,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
 
     if (widget.initialQuery != null) {
       _searchController.text = widget.initialQuery!;
+      _searchAnchorController.text = widget.initialQuery!;
       _searchCity(widget.initialQuery!);
     }
   }
@@ -42,6 +44,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
   void dispose() {
     _animationController.dispose();
     _searchController.dispose();
+    _searchAnchorController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
   }
@@ -53,6 +56,16 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
 
   List<WeatherModel> _searchResults = [];
   bool _isLoading = false;
+
+  // Method untuk mendapatkan suggestions
+  Future<List<WeatherModel>> _getSuggestions(String query) async {
+    final weatherProvider = Provider.of<WeatherProvider>(context, listen: false);
+    try {
+      return await weatherProvider.searchLocationsByQuery(query);
+    } catch (e) {
+      return [];
+    }
+  }
 
   void _searchCity(String query) async {
     HapticFeedback.lightImpact();
@@ -134,14 +147,15 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
     Provider.of<WeatherProvider>(context, listen: false).addSavedLocation(weather);
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(context.translate('added_to_saved_locations').replaceAll('{city}', weather.cityName)),
-        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-      ),
+        SnackBar(
+            content
+                : Text(context.translate('added_to_saved_locations').replaceAll('{city}', weather.cityName)),
+    backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+    behavior: SnackBarBehavior.floating,
+    shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(12),
+    ),
+    ),
     );
   }
 
@@ -167,30 +181,78 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: SearchBar(
-                controller: _searchController,
-                focusNode: _searchFocusNode,
-                hintText: context.translate('search_city_hint'),
-                elevation: MaterialStateProperty.all(1),
-                padding: MaterialStateProperty.all(
-                  const EdgeInsets.symmetric(horizontal: 16),
-                ),
-                leading: const Icon(Icons.search),
-                trailing: [
-                  IconButton(
-                    icon: const Icon(Icons.clear),
-                    onPressed: () {
-                      _searchController.clear();
-                      setState(() {
-                        _searchResults = [];
-                      });
+              child: SearchAnchor(
+                searchController: _searchAnchorController,
+                builder: (BuildContext context, SearchController controller) {
+                  return SearchBar(
+                    controller: _searchController,
+                    focusNode: _searchFocusNode,
+                    hintText: context.translate('search_city_hint'),
+                    elevation: MaterialStateProperty.all(1),
+                    padding: MaterialStateProperty.all(
+                      const EdgeInsets.symmetric(horizontal: 16),
+                    ),
+                    leading: const Icon(Icons.search),
+                    trailing: [
+                      IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          _searchAnchorController.clear();
+                          setState(() {
+                            _searchResults = [];
+                          });
+                        },
+                      ),
+                    ],
+                    onTap: () {
+                      controller.openView();
                     },
-                  ),
-                ],
-                onSubmitted: (value) {
-                  if (value.isNotEmpty) {
-                    _searchCity(value);
+                  );
+                },
+                suggestionsBuilder: (BuildContext context, SearchController controller) async {
+                  final query = controller.text;
+                  if (query.isEmpty) {
+                    return [
+                      Center(
+                        child: Text(context.translate('start_typing_to_search')),
+                      )
+                    ];
                   }
+
+                  final suggestions = await _getSuggestions(query);
+
+                  if (suggestions.isEmpty) {
+                    return [
+                      Center(
+                        child: Text(context.translate('no_results_found')),
+                      )
+                    ];
+                  }
+
+                  return suggestions.map((weather) {
+                    return ListTile(
+                      leading: CachedNetworkImage(
+                        imageUrl: 'http://openweathermap.org/img/wn/${weather.icon}@2x.png',
+                        width: 40,
+                        height: 40,
+                        placeholder: (context, url) => CircularProgressIndicator(
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        errorWidget: (context, url, error) => Icon(
+                          Icons.error,
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                      title: Text(weather.cityName),
+                      subtitle: Text('${weather.temperature.toStringAsFixed(1)}°C - ${weather.description}'),
+                      onTap: () {
+                        controller.closeView(weather.cityName);
+                        _searchController.text = weather.cityName;
+                        _searchCity(weather.cityName);
+                      },
+                    );
+                  }).toList();
                 },
               ),
             ),
@@ -253,93 +315,93 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
   Widget _buildSearchResults(ColorScheme colorScheme, TextTheme textTheme) {
     if (_isLoading) {
       return Center(
-        child: CircularProgressIndicator(
-          color: colorScheme.primary,
-        ),
-      );
+      child: CircularProgressIndicator(
+      color: colorScheme.primary,
+      ),
+    );
     }
 
     if (_searchResults.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.location_searching,
-              size: 100,
-              color: colorScheme.primary.withOpacity(0.5),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              context.translate('start_searching'),
-              style: textTheme.bodyLarge?.copyWith(
-                color: colorScheme.onSurface.withOpacity(0.6),
-              ),
-            ),
-          ],
-        ),
-      );
+    return Center(
+    child: Column(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+    Icon(
+    Icons.location_searching,
+    size: 100,
+    color: colorScheme.primary.withOpacity(0.5),
+    ),
+    const SizedBox(height: 16),
+    Text(
+    context.translate('start_searching'),
+    style: textTheme.bodyLarge?.copyWith(
+    color: colorScheme.onSurface.withOpacity(0.6),
+    ),
+    ),
+    ],
+    ),
+    );
     }
 
     return ListView.builder(
-      itemCount: _searchResults.length,
-      itemBuilder: (context, index) {
-        final weather = _searchResults[index];
-        return Card(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          elevation: 1,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: ListTile(
-            contentPadding: const EdgeInsets.all(12),
-            leading: CachedNetworkImage(
-              imageUrl: 'http://openweathermap.org/img/wn/${weather.icon}@2x.png',
-              width: 60,
-              height: 60,
-              placeholder: (context, url) => CircularProgressIndicator(
-                color: colorScheme.primary,
-              ),
-              errorWidget: (context, url, error) => Icon(
-                Icons.error,
-                color: colorScheme.error,
-              ),
-            ),
-            title: Text(
-              weather.cityName,
-              style: textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            subtitle: Text(
-              '${weather.temperature.toStringAsFixed(1)}°C - ${weather.description}',
-              style: textTheme.bodyMedium?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: Icon(
-                    Icons.save_alt,
-                    color: colorScheme.primary,
-                  ),
-                  onPressed: () => _saveLocation(weather),
-                ),
-                IconButton(
-                  icon: Icon(
-                    Icons.chevron_right,
-                    color: colorScheme.primary,
-                  ),
-                  onPressed: () => _navigateToWeatherDetails(weather),
-                ),
-              ],
-            ),
-            onTap: () => _navigateToWeatherDetails(weather),
-          ),
-        );
-      },
+    itemCount: _searchResults.length,
+    itemBuilder: (context, index) {
+    final weather = _searchResults[index];
+    return Card(
+    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    elevation: 1,
+    shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(12),
+    ),
+    child: ListTile(
+    contentPadding: const EdgeInsets.all(12),
+    leading: CachedNetworkImage(
+    imageUrl: 'http://openweathermap.org/img/wn/${weather.icon}@2x.png',
+    width: 60,
+    height: 60,
+    placeholder: (context, url) => CircularProgressIndicator(
+    color: colorScheme.primary,
+    ),
+    errorWidget: (context, url, error) => Icon(
+    Icons.error,
+    color: colorScheme.error,
+    ),
+    ),
+    title: Text(
+    weather.cityName,
+    style: textTheme.titleMedium?.copyWith(
+    fontWeight: FontWeight.bold,
+    ),
+    ),
+    subtitle: Text(
+    '${weather.temperature.toStringAsFixed(1)}°C - ${weather.description}',
+    style: textTheme.bodyMedium?.copyWith(
+    color: colorScheme.onSurfaceVariant,
+    ),
+    ),
+    trailing: Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+    IconButton(
+    icon: Icon(
+    Icons.save_alt,
+    color: colorScheme.primary,
+    ),
+    onPressed: () => _saveLocation(weather),
+    ),
+    IconButton(
+    icon: Icon(
+    Icons.chevron_right,
+    color: colorScheme.primary,
+    ),
+    onPressed: () => _navigateToWeatherDetails(weather),
+    ),
+    ],
+    ),
+    onTap: () => _navigateToWeatherDetails(weather),
+    ),
+    );
+    },
     );
   }
 }
